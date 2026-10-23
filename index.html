@@ -239,8 +239,7 @@
   function showError(msg) {
     document.getElementById("loadingView").style.display = "block";
     document.getElementById("loadingView").innerHTML = 
-      '<div class="error-msg">❌ <strong>連線或伺服器異常：</strong><br>' + msg + 
-      '<br><br>💡 請確認 Google 試算表中已建立名為<b>【員工名單】</b>與<b>【打卡紀錄】</b>的分頁。</div>';
+      '<div class="error-msg">❌ <strong>連線或伺服器異常：</strong></div>';
     document.getElementById("unboundView").style.display = "none";
     document.getElementById("boundView").style.display = "none";
   }
