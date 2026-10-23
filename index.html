@@ -29,10 +29,12 @@
   <h2>📍 定點打卡系統</h2>
   <div id="statusBadge" class="badge badge-unbound">載入系統中...</div>
 
+  <!-- 載入中 -->
   <div id="loadingView">
     <p>正在驗證裝置識別碼...</p>
   </div>
 
+  <!-- 未綁定畫面 -->
   <div id="unboundView" style="display: none;">
     <div class="form-group">
       <label for="staffSelect">👤 請選擇您的姓名（首次綁定）：</label>
@@ -43,6 +45,7 @@
     <button class="btn btn-primary" onclick="handleBind()">🔗 完成身分綁定</button>
   </div>
 
+  <!-- 已綁定畫面 -->
   <div id="boundView" style="display: none;">
     <div class="form-group" style="text-align: center; margin-bottom: 25px;">
       <span style="font-size: 15px; color: #5f6368;">當前打卡人員</span>
@@ -53,21 +56,23 @@
     <button class="btn btn-warning" onclick="handleCheckIn('Check-out')">🌙 下班打卡 (Clock-Out)</button>
   </div>
 
+  <!-- iOS 主畫面引導提示 -->
   <div id="pwaNotice" class="pwa-box" style="display: none;">
     💡 <strong>提示：</strong>建議點選瀏覽器下方分享按鈕 ➔ 選擇 <b>「新增至主畫面」</b>，日後可直接點擊圖示快捷打卡！
   </div>
 </div>
 
 <script>
-// ⚠️ 1. 請貼上您的 Google Apps Script Web App 網址 ⚠️
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxS59p5sHneGR8KVEXAnA63wi8dcCVM81yjbzPCdDEOCH6KKwq8eWfwgoMRWQHZypTR/exec";
-
-// ⚠️ 2. 通用驗證碼 (與後端 clientAppCode 一致) ⚠️
-const clientAppCode = "MK2026_Auth_888";
+  // 1. Google Apps Script Web App 部署網址（已自動更換為您的 /s/ 正確網址）
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxS59p5sHneGR8KVEXAnA63wi8dcCVM81yjbzPCdDEOCH6KKwq8eWfwgoMRWQHZypTR/exec";
+  
+  // 2. 通用驗證碼 (與後端 程式碼.gs 的 clientAppCode 保持一致)
+  const clientAppCode = "MK2026_Auth_888";
 
   let currentDeviceId = "";
   let currentEmpName = "";
 
+  // 取得或產生本地 Device ID (第一方網域下 iOS 不會清空)
   function getDeviceId() {
     let id = localStorage.getItem('company_device_id');
     if (!id || id.trim() === "") {
@@ -81,16 +86,17 @@ const clientAppCode = "MK2026_Auth_888";
     return id;
   }
 
+  // API 通訊封裝（不帶自訂 Header，避免跨域 CORS 預檢請求）
   function fetchAPI(payload) {
     payload.appCode = clientAppCode;
 
     return fetch(GAS_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     }).then(res => res.json());
   }
 
+  // 頁面初始化
   window.onload = function() {
     currentDeviceId = getDeviceId();
     
@@ -115,10 +121,13 @@ const clientAppCode = "MK2026_Auth_888";
         }
       })
       .catch(err => {
-        document.getElementById("loadingView").innerHTML = "<p style='color:red;'>連線失敗，請檢查系統設定。</p>";
+        document.getElementById("loadingView").innerHTML = 
+          "<p style='color:red; font-size:14px;'>❌ 連線失敗原因：<br>" + (err.message || err) + 
+          "<br><br>請確認 GAS 部署權限已設為<b>『所有人 (Anyone)』</b>。</p>";
       });
   };
 
+  // 載入員工名單
   function loadStaffList() {
     fetchAPI({ action: 'getStaffList' })
       .then(res => {
@@ -132,9 +141,13 @@ const clientAppCode = "MK2026_Auth_888";
             select.appendChild(opt);
           });
         }
+      })
+      .catch(err => {
+        alert("載入員工名單失敗：" + (err.message || err));
       });
   }
 
+  // 處理身分綁定
   function handleBind() {
     const selectedEmp = document.getElementById("staffSelect").value;
     if (!selectedEmp) { alert("請先選擇您的姓名！"); return; }
@@ -150,9 +163,10 @@ const clientAppCode = "MK2026_Auth_888";
           alert(res.message);
         }
       })
-      .catch(err => { hideLoading(); alert("綁定失敗：" + err); });
+      .catch(err => { hideLoading(); alert("綁定失敗：" + (err.message || err)); });
   }
 
+  // 處理打卡
   function handleCheckIn(checkType) {
     showLoading("正在記錄打卡數據...");
     
@@ -185,7 +199,7 @@ const clientAppCode = "MK2026_Auth_888";
         alert(res.message);
       }
     })
-    .catch(err => { hideLoading(); alert("打卡失敗：" + err); });
+    .catch(err => { hideLoading(); alert("打卡失敗：" + (err.message || err)); });
   }
 
   function showLoading(msg) {
