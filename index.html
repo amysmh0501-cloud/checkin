@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>定點打卡系統</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; display: flex; justify-content: center; }
+    .card { background: #ffffff; width: 100%; max-width: 420px; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
+    h2 { margin-top: 0; color: #1a73e8; font-size: 22px; }
+    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
+    .badge-bound { background-color: #e6f4ea; color: #137333; }
+    .badge-unbound { background-color: #feefc3; color: #b06000; }
+    .form-group { margin-bottom: 18px; text-align: left; }
+    label { font-size: 14px; font-weight: 600; color: #5f6368; display: block; margin-bottom: 6px; }
+    select { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 16px; background-color: #fff; }
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+    .btn-primary { background-color: #1a73e8; color: white; }
+    .btn-success { background-color: #34a853; color: white; margin-bottom: 10px; }
+    .btn-warning { background-color: #ea4335; color: white; }
+    .pwa-box { background-color: #e8f0fe; border: 1px solid #aecbfa; border-radius: 10px; padding: 12px; margin-top: 20px; text-align: left; font-size: 13px; color: #174ea6; line-height: 1.5; }
+    #loadingView { display: block; color: #666; margin: 20px 0; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>📍 定點打卡系統</h2>
+  <div id="statusBadge" class="badge badge-unbound">載入系統中...</div>
+
+  <div id="loadingView">
+    <p>正在驗證裝置識別碼...</p>
+  </div>
+
+  <div id="unboundView" style="display: none;">
+    <div class="form-group">
+      <label for="staffSelect">👤 請選擇您的姓名（首次綁定）：</label>
+      <select id="staffSelect">
+        <option value="">-- 載入員工名單中... --</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="handleBind()">🔗 完成身分綁定</button>
+  </div>
+
+  <div id="boundView" style="display: none;">
+    <div class="form-group" style="text-align: center; margin-bottom: 25px;">
+      <span style="font-size: 15px; color: #5f6368;">當前打卡人員</span>
+      <div id="empNameDisplay" style="font-size: 24px; font-weight: bold; color: #202124; margin-top: 5px;">-</div>
+    </div>
+
+    <button class="btn btn-success" onclick="handleCheckIn('Check-in')">☀️ 上班打卡 (Clock-In)</button>
+    <button class="btn btn-warning" onclick="handleCheckIn('Check-out')">🌙 下班打卡 (Clock-Out)</button>
+  </div>
+
+  <div id="pwaNotice" class="pwa-box" style="display: none;">
+    💡 <strong>提示：</strong>建議點選瀏覽器下方分享按鈕 ➔ 選擇 <b>「新增至主畫面」</b>，日後可直接點擊圖示快捷打卡！
+  </div>
+</div>
+
+<script>
+  // ⚠️ 1. 請貼上您的 Google Apps Script Web App 網址 ⚠️
+  const GAS_API_URL = "https://docs.google.com/spreadsheets/d/1zhU2EZaWbs5E_sqbZnuLPFy5xfHczOjSy1IG66eObwc/edit?usp=sharing";
+  
+  // ⚠️ 2. 通用驗證碼 (與後端 clientAppCode 一致，去敏感名稱) ⚠️
+  const clientAppCode = "MK2026_Auth_888";
+
+  let currentDeviceId = "";
+  let currentEmpName = "";
+
+  function getDeviceId() {
+    let id = localStorage.getItem('company_device_id');
+    if (!id || id.trim() === "") {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        id = 'DEV-' + crypto.randomUUID();
+      } else {
+        id = 'DEV-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+      }
+      localStorage.setItem('company_device_id', id);
+    }
+    return id;
+  }
+
+  function fetchAPI(payload) {
+    payload.appCode = clientAppCode;
+
+    return fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).then(res => res.json());
+  }
+
+  window.onload = function() {
+    currentDeviceId = getDeviceId();
+    
+    fetchAPI({ action: 'checkBinding', deviceId: currentDeviceId })
+      .then(res => {
+        document.getElementById("loadingView").style.display = "none";
+        if (res && res.isBound) {
+          currentEmpName = res.empName;
+          document.getElementById("statusBadge").className = "badge badge-bound";
+          document.getElementById("statusBadge").innerText = "已安全綁定裝置";
+          document.getElementById("empNameDisplay").innerText = res.empName;
+          document.getElementById("boundView").style.display = "block";
+        } else {
+          document.getElementById("statusBadge").className = "badge badge-unbound";
+          document.getElementById("statusBadge").innerText = "尚未綁定裝置";
+          document.getElementById("unboundView").style.display = "block";
+          loadStaffList();
+        }
+        
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          document.getElementById("pwaNotice").style.display = "block";
+        }
+      })
+      .catch(err => {
+        document.getElementById("loadingView").innerHTML = "<p style='color:red;'>連線失敗，請檢查系統設定。</p>";
+      });
+  };
+
+  function loadStaffList() {
+    fetchAPI({ action: 'getStaffList' })
+      .then(res => {
+        const select = document.getElementById("staffSelect");
+        select.innerHTML = '<option value="">-- 請選擇員工 --</option>';
+        if (res.success && res.staffList) {
+          res.staffList.forEach(emp => {
+            const opt = document.createElement("option");
+            opt.value = emp.name;
+            opt.innerText = emp.name + " (" + emp.dept + ")";
+            select.appendChild(opt);
+          });
+        }
+      });
+  }
+
+  function handleBind() {
+    const selectedEmp = document.getElementById("staffSelect").value;
+    if (!selectedEmp) { alert("請先選擇您的姓名！"); return; }
+    
+    showLoading("正在綁定身分...");
+    fetchAPI({ action: 'bind', empName: selectedEmp, deviceId: currentDeviceId })
+      .then(res => {
+        if (res.success) {
+          alert(res.message);
+          location.reload();
+        } else {
+          hideLoading();
+          alert(res.message);
+        }
+      })
+      .catch(err => { hideLoading(); alert("綁定失敗：" + err); });
+  }
+
+  function handleCheckIn(checkType) {
+    showLoading("正在記錄打卡數據...");
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => submitCheckIn(checkType, pos.coords.latitude, pos.coords.longitude),
+        err => submitCheckIn(checkType, "", ""),
+        { timeout: 5000 }
+      );
+    } else {
+      submitCheckIn(checkType, "", "");
+    }
+  }
+
+  function submitCheckIn(checkType, lat, lng) {
+    fetchAPI({
+      action: 'checkIn',
+      empName: currentEmpName,
+      checkType: checkType,
+      location: "Main Kitchen",
+      lat: lat,
+      lng: lng,
+      deviceId: currentDeviceId
+    })
+    .then(res => {
+      hideLoading();
+      if (res.success) {
+        alert(res.message + "\n打卡時間：" + res.time);
+      } else {
+        alert(res.message);
+      }
+    })
+    .catch(err => { hideLoading(); alert("打卡失敗：" + err); });
+  }
+
+  function showLoading(msg) {
+    document.getElementById("loadingView").style.display = "block";
+    document.getElementById("loadingView").querySelector("p").innerText = msg;
+    document.getElementById("unboundView").style.display = "none";
+    document.getElementById("boundView").style.display = "none";
+  }
+
+  function hideLoading() {
+    document.getElementById("loadingView").style.display = "none";
+    if (currentEmpName) {
+      document.getElementById("boundView").style.display = "block";
+    } else {
+      document.getElementById("unboundView").style.display = "block";
+    }
+  }
+</script>
+
+</body>
+</html>
