@@ -68,7 +68,7 @@
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxS59p5sHneGR8KVEXAnA63wi8dcCVM81yjbzPCdDEOCH6KKwq8eWfwgoMRWQHZypTR/exec";
   
   // 防偽驗證暗號 (與後端 程式碼.gs 的 clientAppCode 保持一致)
- const clientAppCode = "MK2026_Auth_888";
+  const clientAppCode = "MK2026_Auth_888";
 
   let currentDeviceId = "";
   let currentEmpName = "";
@@ -87,11 +87,7 @@
     return id;
   }
 
- // 通用 API 發送函式 (包含 302 轉址跟隨與 UTF-8 編碼防護)
-  function fetchAPI(payload) {
-    payload.appCode = clientAppCode;
-
-   // 通用 API 發送函式（極簡 POST 模式，防止 Chrome 302 轉址攔截 CORS）
+  // 通用 API 發送函式（極簡 POST 模式，防止 Chrome 302 轉址攔截 CORS）
   function fetchAPI(payload) {
     payload.appCode = clientAppCode;
 
@@ -106,21 +102,19 @@
       return res.json();
     });
   }
-  
- // 頁面初始化驗證邏輯
+
+  // 頁面初始化驗證邏輯
   function initApp() {
-    var deviceId = getDeviceId(); // 取得或產生裝置識別碼
+    currentDeviceId = getDeviceId(); // 正確寫入全域裝置 ID
     
     fetchAPI({ action: 'checkBinding', deviceId: currentDeviceId })
       .then(res => {
-        // 1. 隱藏載入中畫面
+        // 隱藏載入中畫面
         document.getElementById("loadingView").style.display = "none";
-        
         console.log("【除錯】checkBinding 後端回應：", res);
 
-        // 2. 檢查後端是否成功回應
+        // 檢查後端是否成功回應
         if (res && res.success !== false) {
-          // 3. 同時支援 isBound 與 bound 屬性名稱
           if (res.isBound || res.bound) {
             currentEmpName = res.empName;
             document.getElementById("statusBadge").className = "badge badge-bound";
@@ -134,7 +128,6 @@
             loadStaffList(); // 載入員工下拉選單
           }
         } else {
-          // 後端回傳失敗（例如試算表分頁名稱不對）
           showError("後端驗證失敗：" + (res ? res.message : "未收到回應內容"));
         }
         
@@ -145,7 +138,8 @@
       .catch(err => {
         showError("無法連線至打卡後端：" + (err.message || err));
       });
-    
+  }
+
   // 載入員工名單
   function loadStaffList() {
     fetchAPI({ action: 'getStaffList' })
@@ -243,15 +237,6 @@
     } else {
       document.getElementById("unboundView").style.display = "block";
     }
-  }
-
- if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          document.getElementById("pwaNotice").style.display = "block";
-        }
-      })
-      .catch(err => {
-        showError("無法連線至打卡後端：" + (err.message || err));
-      });
   }
 
   // 輔助提示訊息函式
