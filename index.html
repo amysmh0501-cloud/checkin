@@ -245,15 +245,10 @@
     }
   }
 
-  function showError(msg) {
-    document.getElementById("loadingView").style.display = "block";
-    document.getElementById("loadingView").innerHTML = 
-      '<div class="error-msg">❌ <strong>連線或伺服器異常：</strong></div>';
-    document.getElementById("unboundView").style.display = "none";
-    document.getElementById("boundView").style.display = "none";
-  }
- }
-  })
+ if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          document.getElementById("pwaNotice").style.display = "block";
+        }
+      })
       .catch(err => {
         showError("無法連線至打卡後端：" + (err.message || err));
       });
@@ -261,8 +256,11 @@
 
   // 輔助提示訊息函式
   function showError(msg) {
-    document.getElementById("loadingView").style.display = "none";
-    alert(msg);
+    document.getElementById("loadingView").style.display = "block";
+    document.getElementById("loadingView").innerHTML = 
+      '<div class="error-msg">❌ <strong>連線或伺服器異常：</strong>' + msg + '</div>';
+    document.getElementById("unboundView").style.display = "none";
+    document.getElementById("boundView").style.display = "none";
   }
 
   // 頁面載入完成後自動觸發初始化
