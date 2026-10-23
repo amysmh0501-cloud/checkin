@@ -87,17 +87,17 @@
     return id;
   }
 
-  // 通用 API 發送函式（使用 text/plain 避免觸發 CORS preflight）
+ // 通用 API 發送函式 (包含 302 轉址跟隨與 UTF-8 編碼防護)
   function fetchAPI(payload) {
     payload.appCode = clientAppCode;
 
     return fetch(GAS_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8' // 繞過 OPTIONS 預檢的關鍵設定
+        'Content-Type': 'text/plain;charset=utf-8' // 強制指定 UTF-8 編碼
       },
       body: JSON.stringify(payload),
-      redirect: 'follow' // 自動跟隨 Google 的 302 轉址
+      redirect: 'follow' // 關鍵：明確指示瀏覽器跟隨 Google 伺服器的 302 重定向
     })
     .then(res => {
       if (!res.ok) {
@@ -106,6 +106,7 @@
       return res.json();
     });
   }
+  
   // 頁面初始化
   window.onload = function() {
     currentDeviceId = getDeviceId();
