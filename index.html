@@ -107,36 +107,36 @@
     });
   }
   
-  // 頁面初始化
-  window.onload = function() {
-    currentDeviceId = getDeviceId();
+ // 頁面初始化驗證邏輯
+  function initApp() {
+    var deviceId = getDeviceId(); // 取得或產生裝置識別碼
     
-    fetchAPI({ action: 'checkBinding', deviceId: currentDeviceId })
+    fetchAPI({ action: 'checkBinding', deviceId: deviceId })
       .then(res => {
-        document.getElementById("loadingView").style.display = "none";
+        console.log("後端回應：", res);
         
-        if (res && res.isBound) {
-          currentEmpName = res.empName;
-          document.getElementById("statusBadge").className = "badge badge-bound";
-          document.getElementById("statusBadge").innerText = "已安全綁定裝置";
-          document.getElementById("empNameDisplay").innerText = res.empName;
-          document.getElementById("boundView").style.display = "block";
+        // 隱藏載入中提示
+        document.getElementById('loadingStatus').style.display = 'none';
+        
+        if (res.success) {
+          // 相容 bound 或 isBound 欄位
+          if (res.bound || res.isBound) {
+            // 已綁定 -> 顯示打卡主頁面
+            document.getElementById('checkInSection').style.display = 'block';
+            document.getElementById('welcomeUser').innerText = "歡迎，" + (res.empName || "員工");
+          } else {
+            // 未綁定 -> 顯示選擇員工綁定頁面
+            document.getElementById('bindingSection').style.display = 'block';
+            loadStaffOptions(); // 載入員工名單選單
+          }
         } else {
-          document.getElementById("statusBadge").className = "badge badge-unbound";
-          document.getElementById("statusBadge").innerText = "尚未綁定裝置";
-          document.getElementById("unboundView").style.display = "block";
-          loadStaffList();
-        }
-        
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          document.getElementById("pwaNotice").style.display = "block";
+          alert("系統訊息: " + (res.message || "無法驗證裝置"));
         }
       })
       .catch(err => {
-        showError("無法連線至打卡後端：" + (err.message || err));
+        document.getElementById('loadingStatus').innerText = "連線失敗：" + err.message;
       });
-  };
-
+  }
   // 載入員工名單
   function loadStaffList() {
     fetchAPI({ action: 'getStaffList' })
