@@ -111,32 +111,41 @@
   function initApp() {
     var deviceId = getDeviceId(); // 取得或產生裝置識別碼
     
-    fetchAPI({ action: 'checkBinding', deviceId: deviceId })
+    fetchAPI({ action: 'checkBinding', deviceId: currentDeviceId })
       .then(res => {
-        console.log("後端回應：", res);
+        // 1. 隱藏載入中畫面
+        document.getElementById("loadingView").style.display = "none";
         
-        // 隱藏載入中提示
-        document.getElementById('loadingStatus').style.display = 'none';
-        
-        if (res.success) {
-          // 相容 bound 或 isBound 欄位
-          if (res.bound || res.isBound) {
-            // 已綁定 -> 顯示打卡主頁面
-            document.getElementById('checkInSection').style.display = 'block';
-            document.getElementById('welcomeUser').innerText = "歡迎，" + (res.empName || "員工");
+        console.log("【除錯】checkBinding 後端回應：", res);
+
+        // 2. 檢查後端是否成功回應
+        if (res && res.success !== false) {
+          // 3. 同時支援 isBound 與 bound 屬性名稱
+          if (res.isBound || res.bound) {
+            currentEmpName = res.empName;
+            document.getElementById("statusBadge").className = "badge badge-bound";
+            document.getElementById("statusBadge").innerText = "已安全綁定裝置";
+            document.getElementById("empNameDisplay").innerText = res.empName;
+            document.getElementById("boundView").style.display = "block";
           } else {
-            // 未綁定 -> 顯示選擇員工綁定頁面
-            document.getElementById('bindingSection').style.display = 'block';
-            loadStaffOptions(); // 載入員工名單選單
+            document.getElementById("statusBadge").className = "badge badge-unbound";
+            document.getElementById("statusBadge").innerText = "尚未綁定裝置";
+            document.getElementById("unboundView").style.display = "block";
+            loadStaffList(); // 載入員工下拉選單
           }
         } else {
-          alert("系統訊息: " + (res.message || "無法驗證裝置"));
+          // 後端回傳失敗（例如試算表分頁名稱不對）
+          showError("後端驗證失敗：" + (res ? res.message : "未收到回應內容"));
+        }
+        
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          document.getElementById("pwaNotice").style.display = "block";
         }
       })
       .catch(err => {
-        document.getElementById('loadingStatus').innerText = "連線失敗：" + err.message;
+        showError("無法連線至打卡後端：" + (err.message || err));
       });
-  }
+    
   // 載入員工名單
   function loadStaffList() {
     fetchAPI({ action: 'getStaffList' })
