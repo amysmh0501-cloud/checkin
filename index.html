@@ -91,13 +91,13 @@
   function fetchAPI(payload) {
     payload.appCode = clientAppCode;
 
+   // 通用 API 發送函式（極簡 POST 模式，防止 Chrome 302 轉址攔截 CORS）
+  function fetchAPI(payload) {
+    payload.appCode = clientAppCode;
+
     return fetch(GAS_API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8' // 強制指定 UTF-8 編碼
-      },
-      body: JSON.stringify(payload),
-      redirect: 'follow' // 關鍵：明確指示瀏覽器跟隨 Google 伺服器的 302 重定向
+      body: JSON.stringify(payload)
     })
     .then(res => {
       if (!res.ok) {
