@@ -65,8 +65,17 @@
 
 <script>
   // 後端 Web App 正確部署網址
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxS59p5sHneGR8KVEXAnA63wi8dcCVM81yjbzPCdDEOCH6KKwq8eWfwgoMRWQHZypTR/exec";
-  
+  const API_URL = "https://script.google.com/macros/s/AKfycbxS59p5sHneGR8KVEXAnA63wi8dcCVM81yjbzPCdDEOCH6KKwq8eWfwgoMRWQHZypTR/exec";
+
+fetch(`${API_URL}?action=ping`)
+  .then(async (response) => {
+    console.log("HTTP status:", response.status);
+    console.log("Response URL:", response.url);
+    console.log("Response:", await response.text());
+  })
+  .catch((error) => {
+    console.error("API connection failed:", error);
+  });
   // 防偽驗證暗號 (與後端 程式碼.gs 的 clientAppCode 保持一致)
   const clientAppCode = "MK2026_Auth_888";
 
