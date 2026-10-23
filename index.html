@@ -253,7 +253,11 @@
     document.getElementById("boundView").style.display = "none";
   }
  }
-</script>
+  catch(err => {
+        showError("無法連線至打卡後端：" + (err.message || err));
+      }
+  }
+  </script>
 
 </body>
 </html>
