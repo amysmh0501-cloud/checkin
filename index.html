@@ -398,9 +398,13 @@ async function verifyCurrentDevice(currentDeviceId) {
       btnCheckIn.innerText = "Submit Check-In";
       btnCheckIn.disabled = false;
     }
-  }
+    const response = await fetch(url.toString());
+
+if (!response.ok) {
+  throw new Error(`HTTP ${response.status}`);
 }
-  const res = await response.json();
+
+const res = await response.json();
 
     if (res && res.isBound) {
       isBound = true;
