@@ -249,11 +249,54 @@ fetch(`${API_URL}?action=ping`)
     });
   }
 
-  function loadEmployeeList() {
-    async function checkDeviceBinding() {
+async function loadEmployeeList() {
   try {
     const url = new URL(API_URL);
+    url.searchParams.set("action", "getEmployeeList");
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const res = await response.json();
+
+    let list = [];
+
+    if (Array.isArray(res)) {
+      list = res;
+    } else if (res && res.success && Array.isArray(res.nameList)) {
+      list = res.nameList;
+    }
+
+    if (list.length > 0) {
+      renderDropdownOptions(list);
+    } else {
+      renderDropdownOptions(DEFAULT_NAMES);
+    }
+  } catch (error) {
+    console.error("Load employee list failed:", error);
+    renderDropdownOptions(DEFAULT_NAMES);
+  }
+}
+
+async function checkDeviceBinding() {
+  try {
+    // 改成你原本實際儲存 deviceId 的方式
+    const deviceId = localStorage.getItem("deviceId");
+
+    if (!deviceId) {
+      isBound = false;
+      document.getElementById("nameSelectGroup").style.display = "block";
+      document.getElementById("boundNameDisplay").style.display = "none";
+      return;
+    }
+
+    const url = new URL(API_URL);
     url.searchParams.set("action", "checkDeviceBinding");
+    url.searchParams.set("deviceId", deviceId);
+
     const response = await fetch(url.toString());
 
     if (!response.ok) {
@@ -278,40 +321,26 @@ fetch(`${API_URL}?action=ping`)
       statusBadge.style.color = "#2e7d32";
     } else {
       isBound = false;
+      lockedEmpName = "";
 
       document.getElementById("nameSelectGroup").style.display = "block";
       document.getElementById("boundNameDisplay").style.display = "none";
+      statusBadge.innerText = "Device Not Verified";
     }
   } catch (error) {
     console.error("Device binding check failed:", error);
-
     isBound = false;
+    lockedEmpName = "";
     statusBadge.innerText = "Verification Failed";
   }
 }
-      .withSuccessHandler(function(res) {
-        var list = [];
-        if (Array.isArray(res)) {
-          list = res;
-        } else if (res && res.success && Array.isArray(res.nameList)) {
-          list = res.nameList;
-        }
 
-        if (list.length > 0) {
-          renderDropdownOptions(list);
-        } else {
-          renderDropdownOptions(DEFAULT_NAMES);
-        }
-      })
-      .withFailureHandler(function(err) {
-        renderDropdownOptions(DEFAULT_NAMES);
-      })
-      .getEmployeeList();
-  }
-
-window.onload = function() {
-  checkDeviceBinding();
-};
+window.addEventListener("load", async function() {
+  await Promise.all([
+    loadEmployeeList(),
+    checkDeviceBinding()
+  ]);
+});
     google.script.run
       .withSuccessHandler(function(res) {
         if (res && res.isBound) {
