@@ -404,7 +404,21 @@ if (!response.ok) {
   throw new Error(`HTTP ${response.status}`);
 }
 
-const res = await response.json();
+async function verifyCurrentDevice(currentDeviceId) {
+  const btnCheckIn = document.getElementById("btnCheckIn");
+
+  try {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", "checkDeviceBinding");
+    url.searchParams.set("deviceId", currentDeviceId);
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const res = await response.json();
 
     if (res && res.isBound) {
       isBound = true;
@@ -421,6 +435,7 @@ const res = await response.json();
       lockedEmpName = "";
 
       document.getElementById("nameSelectGroup").style.display = "block";
+      document.getElementById("boundNameDisplay").style.display = "none";
     }
   } catch (err) {
     console.error("Device verification failed:", err);
