@@ -335,17 +335,22 @@ async function checkDeviceBinding() {
   }
 }
 
+
 window.addEventListener("load", async function() {
   await Promise.all([
     loadEmployeeList(),
-    checkDeviceBinding()
+    verifyCurrentDevice(currentDeviceId)
   ]);
 });
-    google.script.run
- async function verifyCurrentDevice(currentDeviceId) {
+
+async function verifyCurrentDevice(currentDeviceId) {
   const btnCheckIn = document.getElementById("btnCheckIn");
 
   try {
+    if (!currentDeviceId) {
+      throw new Error("Device ID is missing");
+    }
+
     const url = new URL(API_URL);
     url.searchParams.set("action", "checkDeviceBinding");
     url.searchParams.set("deviceId", currentDeviceId);
@@ -382,16 +387,12 @@ window.addEventListener("load", async function() {
       statusBadge.innerText = "First Visit: Select Name to Bind";
       statusBadge.style.backgroundColor = "#fff3e0";
       statusBadge.style.color = "#ef6c00";
-
-      await loadEmployeeList();
     }
   } catch (error) {
     console.error("Device verification failed:", error);
-
     isBound = false;
+    lockedEmpName = "";
     statusBadge.innerText = "Verification Failed";
-    statusBadge.style.backgroundColor = "#ffebee";
-    statusBadge.style.color = "#c62828";
   } finally {
     if (btnCheckIn) {
       btnCheckIn.innerText = "Submit Check-In";
