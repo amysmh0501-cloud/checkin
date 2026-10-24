@@ -1,211 +1,371 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
+  <base target="_top">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>定點打卡系統</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Location Check-In System</title>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; display: flex; justify-content: center; }
-    .card { background: #ffffff; width: 100%; max-width: 420px; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; }
-    h2 { margin-top: 0; color: #1a73e8; font-size: 22px; }
-    .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
-    .badge-bound { background-color: #e6f4ea; color: #137333; }
-    .badge-unbound { background-color: #feefc3; color: #b06000; }
-    .form-group { margin-bottom: 18px; text-align: left; }
-    label { font-size: 14px; font-weight: 600; color: #5f6368; display: block; margin-bottom: 6px; }
-    select { width: 100%; padding: 12px; border: 1px solid #dadce0; border-radius: 8px; font-size: 16px; background-color: #fff; }
-    .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
-    .btn-primary { background-color: #1a73e8; color: white; }
-    .btn-success { background-color: #34a853; color: white; margin-bottom: 10px; }
-    .btn-warning { background-color: #ea4335; color: white; }
-    .pwa-box { background-color: #e8f0fe; border: 1px solid #aecbfa; border-radius: 10px; padding: 12px; margin-top: 20px; text-align: left; font-size: 13px; color: #174ea6; line-height: 1.5; }
-    #loadingView { display: block; color: #666; margin: 20px 0; }
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      margin-top: 0;
+      color: #2c3e50;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background-color: #e8f4fd;
+      color: #1e88e5;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #546e7a;
+      margin-bottom: 6px;
+    }
+    select, button {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #cfd8dc;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    select:focus {
+      border-color: #1e88e5;
+      box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
+    }
+    .btn-submit {
+      background-color: #1e88e5;
+      color: #ffffff;
+      border: none;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-submit:hover {
+      background-color: #1565c0;
+    }
+    .btn-submit:disabled {
+      background-color: #b0bec5;
+      cursor: not-allowed;
+    }
+    .locked-card {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      color: #2e7d32;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      font-size: 15px;
+      text-align: center;
+    }
+    .loading-spinner {
+      display: none;
+      margin-top: 12px;
+      color: #78909c;
+      font-size: 13px;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      animation: modalPop 0.2s ease-out;
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-body {
+      font-size: 15px;
+      color: #2c3e50;
+      margin-bottom: 20px;
+      white-space: pre-line;
+      line-height: 1.5;
+    }
+    .modal-btn {
+      background-color: #1e88e5;
+      color: #ffffff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>📍 定點打卡系統</h2>
-  <div id="statusBadge" class="badge badge-unbound">載入系統中...</div>
+  <h2>📍 Location Check-In</h2>
+  
+  <div id="statusBadge" class="status-badge">Identifying device...</div>
 
-  <!-- 載入中 -->
-  <div id="loadingView">
-    <p>正在安全驗證裝置識別碼...</p>
+  <!-- 1. Displayed after successful device binding -->
+  <div id="boundNameDisplay" class="locked-card" style="display: none;"></div>
+
+  <!-- 2. Displayed on first visit (Unbound state) -->
+  <div id="nameSelectGroup" class="form-group" style="display: none;">
+    <label for="empSelect">Select Your Name (Will bind to this device on first check-in):</label>
+    <select id="empSelect">
+      <option value="">-- Select Your Name --</option>
+    </select>
   </div>
 
-  <!-- 未綁定 -->
-  <div id="unboundView" style="display: none;">
-    <div class="form-group">
-      <label for="staffSelect">👤 請選擇您的姓名（首次綁定）：</label>
-      <select id="staffSelect">
-        <option value="">-- 載入員工名單中... --</option>
-      </select>
-    </div>
-    <button class="btn btn-primary" onclick="handleBind()">🔗 完成身分綁定</button>
+  <!-- Action: Clock-In / Clock-Out Selection -->
+  <div class="form-group">
+    <label for="checkTypeSelect">Action:</label>
+    <select id="checkTypeSelect">
+      <option value="Clock-In">Clock-In (上班)</option>
+      <option value="Clock-Out">Clock-Out (下班)</option>
+    </select>
   </div>
 
-  <!-- 已綁定 -->
-  <div id="boundView" style="display: none;">
-    <div class="form-group" style="text-align: center; margin-bottom: 25px;">
-      <span style="font-size: 15px; color: #5f6368;">當前打卡人員</span>
-      <div id="empNameDisplay" style="font-size: 24px; font-weight: bold; color: #202124; margin-top: 5px;">-</div>
-    </div>
-
-    <button class="btn btn-success" onclick="handleCheckIn('Check-in')">☀️ 上班打卡 (Clock-In)</button>
-    <button class="btn btn-warning" onclick="handleCheckIn('Check-out')">🌙 下班打卡 (Clock-Out)</button>
+  <!-- Check-in Location Selection -->
+  <div class="form-group">
+    <label for="locationSelect">Location:</label>
+    <select id="locationSelect">
+      <option value="Shop">Shop</option>
+      <option value="Main Kitchen">Main Kitchen</option>
+    </select>
   </div>
 
-  <!-- iOS 主畫面引導 -->
-  <div id="pwaNotice" class="pwa-box" style="display: none;">
-    💡 <strong>提示：</strong>建議點選瀏覽器下方分享按鈕 ➔ 選擇 <b>「新增至主畫面」</b>，日後可直接點擊圖示快捷打卡！
+  <button id="btnCheckIn" class="btn-submit" onclick="submitCheckIn()" disabled>Checking Connection...</button>
+
+  <div id="loadingText" class="loading-spinner">⏳ Acquiring GPS location & verifying, please wait...</div>
+</div>
+
+<!-- Custom URL-Free Alert Modal -->
+<div id="customModal" class="modal-overlay" style="display: none;">
+  <div class="modal-card">
+    <div id="modalText" class="modal-body"></div>
+    <button class="modal-btn" onclick="closeCustomModal()">OK</button>
   </div>
 </div>
 
 <script>
-  // ⚠️ 請在此處貼上您部署的 Google Apps Script Web App 網址 ⚠️
   const API_URL = "https://script.google.com/macros/s/AKfycbwQYYlc5RYhCXX9ZhDWvL8S6R8uqX1rmhjO0mMrLf47GZa3dAWqWGVQwMOKdmDhvgNRyA/exec";
 
-  let currentDeviceId = "";
-  let currentEmpName = "";
+fetch(`${API_URL}?action=ping`)
+  .then(async (response) => {
+    console.log("HTTP status:", response.status);
+    console.log("Response URL:", response.url);
+    console.log("Response:", await response.text());
+  })
+  .catch((error) => {
+    console.error("API connection failed:", error);
+  });
+  
+  var DEFAULT_NAMES = ["Surlaia", "Cliff", "Helen", "Jessinta", "Shantel", "Doreen", "Maria", "Amy", "Winston"];
+  var onModalCloseCallback = null;
 
-  // 1. 本地 Device ID 讀寫 (第一方網域下 iOS 絕不遺失)
+  function showAlert(msg, callback) {
+    document.getElementById("modalText").innerText = msg;
+    document.getElementById("customModal").style.display = "flex";
+    onModalCloseCallback = callback || null;
+  }
+
+  function closeCustomModal() {
+    document.getElementById("customModal").style.display = "none";
+    if (onModalCloseCallback) {
+      onModalCloseCallback();
+      onModalCloseCallback = null;
+    }
+  }
+
   function getDeviceId() {
     let id = localStorage.getItem('company_device_id');
-    if (!id || id.trim() === "") {
-      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-        id = 'DEV-' + crypto.randomUUID();
-      } else {
-        id = 'DEV-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
-      }
+    if (!id) {
+      id = 'DEV-' + crypto.randomUUID();
       localStorage.setItem('company_device_id', id);
     }
     return id;
   }
 
-  // API 通訊封裝
-  function fetchAPI(payload) {
-    return fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }).then(res => res.json());
+  var currentDeviceId = getDeviceId();
+  var isBound = false;
+  var lockedEmpName = "";
+
+  function renderDropdownOptions(names) {
+    var select = document.getElementById("empSelect");
+    select.innerHTML = '<option value="">-- Select Your Name --</option>';
+    names.forEach(function(name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      opt.innerText = name;
+      select.appendChild(opt);
+    });
   }
 
-  // 2. 初始化
-  window.onload = function() {
-    currentDeviceId = getDeviceId();
-    
-    fetchAPI({ action: 'checkBinding', deviceId: currentDeviceId })
-      .then(res => {
-        document.getElementById("loadingView").style.display = "none";
-        if (res && res.isBound) {
-          currentEmpName = res.empName;
-          document.getElementById("statusBadge").className = "badge badge-bound";
-          document.getElementById("statusBadge").innerText = "已安全綁定裝置";
-          document.getElementById("empNameDisplay").innerText = res.empName;
-          document.getElementById("boundView").style.display = "block";
-        } else {
-          document.getElementById("statusBadge").className = "badge badge-unbound";
-          document.getElementById("statusBadge").innerText = "尚未綁定裝置";
-          document.getElementById("unboundView").style.display = "block";
-          loadStaffList();
+  function loadEmployeeList() {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        var list = [];
+        if (Array.isArray(res)) {
+          list = res;
+        } else if (res && res.success && Array.isArray(res.nameList)) {
+          list = res.nameList;
         }
-        
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-          document.getElementById("pwaNotice").style.display = "block";
+
+        if (list.length > 0) {
+          renderDropdownOptions(list);
+        } else {
+          renderDropdownOptions(DEFAULT_NAMES);
         }
       })
-      .catch(err => {
-        document.getElementById("loadingView").innerHTML = "<p style='color:red;'>連線失敗，請重新整理頁面。</p>";
-      });
+      .withFailureHandler(function(err) {
+        renderDropdownOptions(DEFAULT_NAMES);
+      })
+      .getEmployeeList();
+  }
+
+  window.onload = function() {
+    var statusBadge = document.getElementById("statusBadge");
+    var btnCheckIn = document.getElementById("btnCheckIn");
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.isBound) {
+          isBound = true;
+          lockedEmpName = res.empName;
+          
+          document.getElementById("nameSelectGroup").style.display = "none";
+          document.getElementById("boundNameDisplay").innerText = "👤 Staff: " + res.empName + " (Device Verified)";
+          document.getElementById("boundNameDisplay").style.display = "block";
+          
+          statusBadge.innerText = "Device Verified";
+          statusBadge.style.backgroundColor = "#e8f5e9";
+          statusBadge.style.color = "#2e7d32";
+        } else {
+          isBound = false;
+          document.getElementById("nameSelectGroup").style.display = "block";
+          document.getElementById("boundNameDisplay").style.display = "none";
+          
+          statusBadge.innerText = "First Visit: Select Name to Bind";
+          statusBadge.style.backgroundColor = "#fff3e0";
+          statusBadge.style.color = "#ef6c00";
+
+          loadEmployeeList();
+        }
+
+        btnCheckIn.innerText = "Submit Check-In";
+        btnCheckIn.disabled = false;
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById("nameSelectGroup").style.display = "block";
+        renderDropdownOptions(DEFAULT_NAMES);
+        btnCheckIn.innerText = "Submit Check-In";
+        btnCheckIn.disabled = false;
+      })
+      .checkDeviceBinding(currentDeviceId);
   };
 
-  function loadStaffList() {
-    fetchAPI({ action: 'getStaffList' })
-      .then(res => {
-        const select = document.getElementById("staffSelect");
-        select.innerHTML = '<option value="">-- 請選擇員工 --</option>';
-        if (res.success && res.staffList) {
-          res.staffList.forEach(emp => {
-            const opt = document.createElement("option");
-            opt.value = emp.name;
-            opt.innerText = emp.name + " (" + emp.dept + ")";
-            select.appendChild(opt);
-          });
-        }
-      });
-  }
+  function submitCheckIn() {
+    var empName = isBound ? lockedEmpName : document.getElementById("empSelect").value;
 
-  // 3. 首次綁定
-  function handleBind() {
-    const selectedEmp = document.getElementById("staffSelect").value;
-    if (!selectedEmp) { alert("請先選擇您的姓名！"); return; }
-    
-    showLoading("正在綁定身分...");
-    fetchAPI({ action: 'bind', empName: selectedEmp, deviceId: currentDeviceId })
-      .then(res => {
-        if (res.success) {
-          alert(res.message);
-          location.reload();
-        } else {
-          hideLoading();
-          alert(res.message);
-        }
-      })
-      .catch(err => { hideLoading(); alert("綁定失敗：" + err); });
-  }
-
-  // 4. 打卡
-  function handleCheckIn(checkType) {
-    showLoading("正在記錄打卡數據...");
-    
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => submitCheckIn(checkType, pos.coords.latitude, pos.coords.longitude),
-        err => submitCheckIn(checkType, "", ""),
-        { timeout: 5000 }
-      );
-    } else {
-      submitCheckIn(checkType, "", "");
+    if (!empName) {
+      showAlert("Please select your name first!");
+      return;
     }
-  }
 
-  function submitCheckIn(checkType, lat, lng) {
-    fetchAPI({
-      action: 'checkIn',
-      empName: currentEmpName,
-      checkType: checkType,
-      location: "Main Kitchen",
-      lat: lat,
-      lng: lng,
-      deviceId: currentDeviceId
-    })
-    .then(res => {
-      hideLoading();
-      if (res.success) {
-        alert(res.message + "\n打卡時間：" + res.time);
-      } else {
-        alert(res.message);
+    var checkType = document.getElementById("checkTypeSelect").value;
+    var location = document.getElementById("locationSelect").value;
+    var btnCheckIn = document.getElementById("btnCheckIn");
+    var loadingText = document.getElementById("loadingText");
+
+    btnCheckIn.disabled = true;
+    btnCheckIn.innerText = "Locating & Verifying...";
+    loadingText.style.display = "block";
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            btnCheckIn.disabled = false;
+            btnCheckIn.innerText = "Submit Check-In";
+            loadingText.style.display = "none";
+
+            showAlert(res.message, function() {
+              if (res.success && !isBound) {
+                window.location.reload();
+              }
+            });
+          })
+          .withFailureHandler(function(err) {
+            btnCheckIn.disabled = false;
+            btnCheckIn.innerText = "Submit Check-In";
+            loadingText.style.display = "none";
+            showAlert("Check-in failed to submit: " + err);
+          })
+          .processCheckIn(empName, location, lat, lng, currentDeviceId, checkType);
+      },
+      function(err) {
+        btnCheckIn.disabled = false;
+        btnCheckIn.innerText = "Submit Check-In";
+        loadingText.style.display = "none";
+        showAlert("Unable to acquire GPS location. Please make sure location services are enabled on your device.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
-    })
-    .catch(err => { hideLoading(); alert("打卡失敗：" + err); });
-  }
-
-  function showLoading(msg) {
-    document.getElementById("loadingView").style.display = "block";
-    document.getElementById("loadingView").querySelector("p").innerText = msg;
-    document.getElementById("unboundView").style.display = "none";
-    document.getElementById("boundView").style.display = "none";
-  }
-
-  function hideLoading() {
-    document.getElementById("loadingView").style.display = "none";
-    if (currentEmpName) {
-      document.getElementById("boundView").style.display = "block";
-    } else {
-      document.getElementById("unboundView").style.display = "block";
-    }
+    );
   }
 </script>
 
