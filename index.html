@@ -196,58 +196,90 @@
 </div>
 
 <script>
-  const API_URL = "https://script.google.com/macros/s/AKfycbwQYYlc5RYhCXX9ZhDWvL8S6R8uqX1rmhjO0mMrLf47GZa3dAWqWGVQwMOKdmDhvgNRyA/exec";
+"use strict";
 
-fetch(`${API_URL}?action=ping`)
-  .then(async (response) => {
-    console.log("HTTP status:", response.status);
-    console.log("Response URL:", response.url);
-    console.log("Response:", await response.text());
-  })
-  .catch((error) => {
-    console.error("API connection failed:", error);
+// ============================================
+// 1. API 設定
+// ============================================
+
+const API_URL = "YOUR_APPS_SCRIPT_EXEC_URL";
+
+const DEFAULT_NAMES = [
+  "Surlaia", "Cliff", "Helen", "Jessinta",
+  "Shantel", "Doreen", "Maria", "Amy", "Winston"
+];
+
+let onModalCloseCallback = null;
+let isBound = false;
+let lockedEmpName = "";
+let currentDeviceId = "";
+let statusBadge = null;
+let isSubmitting = false;
+
+
+// ============================================
+// 2. Modal 提示
+// ============================================
+
+function showAlert(msg, callback) {
+  document.getElementById("modalText").innerText = msg;
+  document.getElementById("customModal").style.display = "flex";
+  onModalCloseCallback = callback || null;
+}
+
+function closeCustomModal() {
+  document.getElementById("customModal").style.display = "none";
+
+  if (onModalCloseCallback) {
+    const callback = onModalCloseCallback;
+    onModalCloseCallback = null;
+    callback();
+  }
+}
+
+
+// ============================================
+// 3. 裝置 ID
+// 必須沿用原本 company_device_id
+// ============================================
+
+function getDeviceId() {
+  let id = localStorage.getItem("company_device_id");
+
+  if (!id) {
+    if (!crypto.randomUUID) {
+      throw new Error("This browser cannot generate a device ID.");
+    }
+
+    id = "DEV-" + crypto.randomUUID();
+    localStorage.setItem("company_device_id", id);
+  }
+
+  return id;
+}
+
+
+// ============================================
+// 4. 員工下拉選單
+// ============================================
+
+function renderDropdownOptions(names) {
+  const select = document.getElementById("empSelect");
+
+  if (!select) {
+    console.error("Missing element: empSelect");
+    return;
+  }
+
+  select.innerHTML = '<option value="">-- Select Your Name --</option>';
+
+  names.forEach(function(name) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.innerText = name;
+    select.appendChild(opt);
   });
-  
-  var DEFAULT_NAMES = ["Surlaia", "Cliff", "Helen", "Jessinta", "Shantel", "Doreen", "Maria", "Amy", "Winston"];
-  var onModalCloseCallback = null;
-
-  function showAlert(msg, callback) {
-    document.getElementById("modalText").innerText = msg;
-    document.getElementById("customModal").style.display = "flex";
-    onModalCloseCallback = callback || null;
-  }
-
-  function closeCustomModal() {
-    document.getElementById("customModal").style.display = "none";
-    if (onModalCloseCallback) {
-      onModalCloseCallback();
-      onModalCloseCallback = null;
-    }
-  }
-
-  function getDeviceId() {
-    let id = localStorage.getItem('company_device_id');
-    if (!id) {
-      id = 'DEV-' + crypto.randomUUID();
-      localStorage.setItem('company_device_id', id);
-    }
-    return id;
-  }
-
-  var currentDeviceId = getDeviceId();
-  var isBound = false;
-  var lockedEmpName = "";
-
-  function renderDropdownOptions(names) {
-    var select = document.getElementById("empSelect");
-    select.innerHTML = '<option value="">-- Select Your Name --</option>';
-    names.forEach(function(name) {
-      var opt = document.createElement("option");
-      opt.value = name;
-      opt.innerText = name;
-      select.appendChild(opt);
-    });
-  }
+}
 
 async function loadEmployeeList() {
   try {
@@ -257,42 +289,39 @@ async function loadEmployeeList() {
     const response = await fetch(url.toString());
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error("HTTP " + response.status);
     }
 
-    const res = await response.json();
+    const result = await response.json();
 
-    let list = [];
+    let names = [];
 
-    if (Array.isArray(res)) {
-      list = res;
-    } else if (res && res.success && Array.isArray(res.nameList)) {
-      list = res.nameList;
+    if (Array.isArray(result)) {
+      names = result;
+    } else if (result && Array.isArray(result.nameList)) {
+      names = result.nameList;
     }
 
-    if (list.length > 0) {
-      renderDropdownOptions(list);
-    } else {
-      renderDropdownOptions(DEFAULT_NAMES);
-    }
+    renderDropdownOptions(
+      names.length > 0 ? names : DEFAULT_NAMES
+    );
+
   } catch (error) {
     console.error("Load employee list failed:", error);
     renderDropdownOptions(DEFAULT_NAMES);
   }
 }
 
-async function checkDeviceBinding() {
+
+// ============================================
+// 5. 檢查裝置綁定
+// ============================================
+
+async function verifyCurrentDevice(deviceId) {
+  const nameGroup = document.getElementById("nameSelectGroup");
+  const boundDisplay = document.getElementById("boundNameDisplay");
+
   try {
-    // 改成你原本實際儲存 deviceId 的方式
-    const deviceId = localStorage.getItem("deviceId");
-
-    if (!deviceId) {
-      isBound = false;
-      document.getElementById("nameSelectGroup").style.display = "block";
-      document.getElementById("boundNameDisplay").style.display = "none";
-      return;
-    }
-
     const url = new URL(API_URL);
     url.searchParams.set("action", "checkDeviceBinding");
     url.searchParams.set("deviceId", deviceId);
@@ -300,210 +329,195 @@ async function checkDeviceBinding() {
     const response = await fetch(url.toString());
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error("HTTP " + response.status);
     }
 
-    const res = await response.json();
+    const result = await response.json();
 
-    if (res && res.isBound) {
+    if (result && result.isBound) {
       isBound = true;
-      lockedEmpName = res.empName;
+      lockedEmpName = result.empName;
 
-      document.getElementById("nameSelectGroup").style.display = "none";
+      nameGroup.style.display = "none";
 
-      document.getElementById("boundNameDisplay").innerText =
-        "👤 Staff: " + res.empName + " (Device Verified)";
-
-      document.getElementById("boundNameDisplay").style.display = "block";
+      boundDisplay.innerText =
+        "👤 Staff: " + result.empName + " (Device Verified)";
+      boundDisplay.style.display = "block";
 
       statusBadge.innerText = "Device Verified";
       statusBadge.style.backgroundColor = "#e8f5e9";
       statusBadge.style.color = "#2e7d32";
+
     } else {
       isBound = false;
       lockedEmpName = "";
 
-      document.getElementById("nameSelectGroup").style.display = "block";
-      document.getElementById("boundNameDisplay").style.display = "none";
-      statusBadge.innerText = "Device Not Verified";
-    }
-  } catch (error) {
-    console.error("Device binding check failed:", error);
-    isBound = false;
-    lockedEmpName = "";
-    statusBadge.innerText = "Verification Failed";
-  }
-}
-
-
-window.addEventListener("load", async function() {
-  await Promise.all([
-    loadEmployeeList(),
-    verifyCurrentDevice(currentDeviceId)
-  ]);
-});
-
-async function verifyCurrentDevice(currentDeviceId) {
-  const btnCheckIn = document.getElementById("btnCheckIn");
-
-  try {
-    if (!currentDeviceId) {
-      throw new Error("Device ID is missing");
-    }
-
-    const url = new URL(API_URL);
-    url.searchParams.set("action", "checkDeviceBinding");
-    url.searchParams.set("deviceId", currentDeviceId);
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const res = await response.json();
-
-    if (res && res.isBound) {
-      isBound = true;
-      lockedEmpName = res.empName;
-
-      document.getElementById("nameSelectGroup").style.display = "none";
-
-      document.getElementById("boundNameDisplay").innerText =
-        "👤 Staff: " + res.empName + " (Device Verified)";
-
-      document.getElementById("boundNameDisplay").style.display = "block";
-
-      statusBadge.innerText = "Device Verified";
-      statusBadge.style.backgroundColor = "#e8f5e9";
-      statusBadge.style.color = "#2e7d32";
-    } else {
-      isBound = false;
-      lockedEmpName = "";
-
-      document.getElementById("nameSelectGroup").style.display = "block";
-      document.getElementById("boundNameDisplay").style.display = "none";
+      nameGroup.style.display = "block";
+      boundDisplay.style.display = "none";
 
       statusBadge.innerText = "First Visit: Select Name to Bind";
       statusBadge.style.backgroundColor = "#fff3e0";
       statusBadge.style.color = "#ef6c00";
     }
+
+    return result;
+
   } catch (error) {
     console.error("Device verification failed:", error);
+
     isBound = false;
     lockedEmpName = "";
-    statusBadge.innerText = "Verification Failed";
-  } finally {
-    if (btnCheckIn) {
-      btnCheckIn.innerText = "Submit Check-In";
-      btnCheckIn.disabled = false;
-    }
-    const response = await fetch(url.toString());
 
-if (!response.ok) {
-  throw new Error(`HTTP ${response.status}`);
+    statusBadge.innerText = "Verification Failed";
+    statusBadge.style.backgroundColor = "#ffebee";
+    statusBadge.style.color = "#c62828";
+
+    // 驗證失敗時不要允許打卡
+    throw error;
+  }
 }
 
-async function verifyCurrentDevice(currentDeviceId) {
-  const btnCheckIn = document.getElementById("btnCheckIn");
+
+// ============================================
+// 6. 打卡提交
+// 需要後端 doPost(e) 支援 processCheckIn
+// ============================================
+
+async function submitCheckIn() {
+  if (isSubmitting) return;
+
+  const btn = document.getElementById("btnCheckIn");
+  const loadingText = document.getElementById("loadingText");
+
+  const empSelect = document.getElementById("empSelect");
+  const checkTypeSelect = document.getElementById("checkTypeSelect");
+  const locationSelect = document.getElementById("locationSelect");
+
+  // 綁定裝置只能使用後端確認的員工
+  const empName = isBound
+    ? lockedEmpName
+    : empSelect.value;
+
+  if (!empName) {
+    showAlert("Please select your name first!");
+    return;
+  }
+
+  const checkType = checkTypeSelect.value;
+  const location = locationSelect.value;
+
+  isSubmitting = true;
+  btn.disabled = true;
+  btn.innerText = "Locating & Verifying...";
+
+  if (loadingText) loadingText.style.display = "block";
 
   try {
-    const url = new URL(API_URL);
-    url.searchParams.set("action", "checkDeviceBinding");
-    url.searchParams.set("deviceId", currentDeviceId);
+    // 如果已有裝置綁定，先重新向後端驗證
+    const binding = await verifyCurrentDevice(currentDeviceId);
 
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    if (binding && binding.isBound &&
+        binding.empName !== empName) {
+      throw new Error("Device employee mismatch.");
     }
 
-    const res = await response.json();
+    await new Promise(function(resolve, reject) {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported."));
+        return;
+      }
 
-    if (res && res.isBound) {
-      isBound = true;
-      lockedEmpName = res.empName;
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
+    }).then(async function(position) {
+      const payload = new URLSearchParams({
+        action: "processCheckIn",
+        empName: empName,
+        location: location,
+        lat: String(position.coords.latitude),
+        lng: String(position.coords.longitude),
+        deviceId: currentDeviceId,
+        checkType: checkType
+      });
 
-      document.getElementById("nameSelectGroup").style.display = "none";
+      // 注意：Apps Script 後端必須實作對應的 doPost 路由
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: payload
+      });
 
-      document.getElementById("boundNameDisplay").innerText =
-        "👤 Staff: " + res.empName + " (Device Verified)";
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
 
-      document.getElementById("boundNameDisplay").style.display = "block";
-    } else {
-      isBound = false;
-      lockedEmpName = "";
+      const result = await response.json();
 
-      document.getElementById("nameSelectGroup").style.display = "block";
-      document.getElementById("boundNameDisplay").style.display = "none";
-    }
-  } catch (err) {
-    console.error("Device verification failed:", err);
-    isBound = false;
-    lockedEmpName = "";
+      if (!result || result.success !== true) {
+        throw new Error(
+          result && result.message
+            ? result.message
+            : "The server did not confirm check-in."
+        );
+      }
+
+      showAlert(result.message || "Check-in successful!", function() {
+        if (result.boundNewDevice) {
+          window.location.reload();
+        }
+      });
+    });
+
+  } catch (error) {
+    console.error("Check-in failed:", error);
+
+    showAlert(
+      error.code === 1
+        ? "Location permission denied. Please enable location access."
+        : error.code === 3
+        ? "Location request timed out. Please try again."
+        : "Unable to confirm check-in. Please check your connection and try again."
+    );
+
   } finally {
-    if (btnCheckIn) {
-      btnCheckIn.innerText = "Submit Check-In";
-      btnCheckIn.disabled = false;
-    }
+    isSubmitting = false;
+    btn.disabled = false;
+    btn.innerText = "Submit Check-In";
+
+    if (loadingText) loadingText.style.display = "none";
   }
 }
 
-  function submitCheckIn() {
-    var empName = isBound ? lockedEmpName : document.getElementById("empSelect").value;
 
-    if (!empName) {
-      showAlert("Please select your name first!");
-      return;
-    }
+// ============================================
+// 7. 頁面初始化
+// ============================================
 
-    var checkType = document.getElementById("checkTypeSelect").value;
-    var location = document.getElementById("locationSelect").value;
-    var btnCheckIn = document.getElementById("btnCheckIn");
-    var loadingText = document.getElementById("loadingText");
+window.addEventListener("load", async function() {
+  statusBadge = document.getElementById("statusBadge");
 
-    btnCheckIn.disabled = true;
-    btnCheckIn.innerText = "Locating & Verifying...";
-    loadingText.style.display = "block";
-
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        var lat = pos.coords.latitude;
-        var lng = pos.coords.longitude;
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            btnCheckIn.disabled = false;
-            btnCheckIn.innerText = "Submit Check-In";
-            loadingText.style.display = "none";
-
-            showAlert(res.message, function() {
-              if (res.success && !isBound) {
-                window.location.reload();
-              }
-            });
-          })
-          .withFailureHandler(function(err) {
-            btnCheckIn.disabled = false;
-            btnCheckIn.innerText = "Submit Check-In";
-            loadingText.style.display = "none";
-            showAlert("Check-in failed to submit: " + err);
-          })
-          .processCheckIn(empName, location, lat, lng, currentDeviceId, checkType);
-      },
-      function(err) {
-        btnCheckIn.disabled = false;
-        btnCheckIn.innerText = "Submit Check-In";
-        loadingText.style.display = "none";
-        showAlert("Unable to acquire GPS location. Please make sure location services are enabled on your device.");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
+  try {
+    currentDeviceId = getDeviceId();
+  } catch (error) {
+    console.error("Device ID initialization failed:", error);
+    showAlert("Unable to initialize this device. Please use a supported browser.");
+    return;
   }
+
+  // 載入員工名單；同時驗證裝置
+  await Promise.all([
+    loadEmployeeList(),
+    verifyCurrentDevice(currentDeviceId).catch(function() {
+      // 驗證失敗已由函式顯示狀態
+    })
+  ]);
+});
 </script>
 
 </body>
