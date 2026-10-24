@@ -250,7 +250,49 @@ fetch(`${API_URL}?action=ping`)
   }
 
   function loadEmployeeList() {
-    google.script.run
+    async function checkDeviceBinding() {
+  try {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", "checkDeviceBinding");
+
+    // 如果你的後端需要裝置識別碼，
+    // 請依原本的綁定機制加入必要參數。
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const res = await response.json();
+
+    if (res && res.isBound) {
+      isBound = true;
+      lockedEmpName = res.empName;
+
+      document.getElementById("nameSelectGroup").style.display = "none";
+
+      document.getElementById("boundNameDisplay").innerText =
+        "👤 Staff: " + res.empName + " (Device Verified)";
+
+      document.getElementById("boundNameDisplay").style.display = "block";
+
+      statusBadge.innerText = "Device Verified";
+      statusBadge.style.backgroundColor = "#e8f5e9";
+      statusBadge.style.color = "#2e7d32";
+    } else {
+      isBound = false;
+
+      document.getElementById("nameSelectGroup").style.display = "block";
+      document.getElementById("boundNameDisplay").style.display = "none";
+    }
+  } catch (error) {
+    console.error("Device binding check failed:", error);
+
+    // 連線失敗時不要誤認為裝置已驗證。
+    isBound = false;
+    statusBadge.innerText = "Verification Failed";
+  }
+}
       .withSuccessHandler(function(res) {
         var list = [];
         if (Array.isArray(res)) {
