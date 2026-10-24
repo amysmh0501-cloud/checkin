@@ -342,42 +342,92 @@ window.addEventListener("load", async function() {
   ]);
 });
     google.script.run
-      .withSuccessHandler(function(res) {
-        if (res && res.isBound) {
-          isBound = true;
-          lockedEmpName = res.empName;
-          
-          document.getElementById("nameSelectGroup").style.display = "none";
-          document.getElementById("boundNameDisplay").innerText = "👤 Staff: " + res.empName + " (Device Verified)";
-          document.getElementById("boundNameDisplay").style.display = "block";
-          
-          statusBadge.innerText = "Device Verified";
-          statusBadge.style.backgroundColor = "#e8f5e9";
-          statusBadge.style.color = "#2e7d32";
-        } else {
-          isBound = false;
-          document.getElementById("nameSelectGroup").style.display = "block";
-          document.getElementById("boundNameDisplay").style.display = "none";
-          
-          statusBadge.innerText = "First Visit: Select Name to Bind";
-          statusBadge.style.backgroundColor = "#fff3e0";
-          statusBadge.style.color = "#ef6c00";
+ async function verifyCurrentDevice(currentDeviceId) {
+  const btnCheckIn = document.getElementById("btnCheckIn");
 
-          loadEmployeeList();
-        }
+  try {
+    const url = new URL(API_URL);
+    url.searchParams.set("action", "checkDeviceBinding");
+    url.searchParams.set("deviceId", currentDeviceId);
 
-        btnCheckIn.innerText = "Submit Check-In";
-        btnCheckIn.disabled = false;
-      })
-      .withFailureHandler(function(err) {
-        document.getElementById("nameSelectGroup").style.display = "block";
-        renderDropdownOptions(DEFAULT_NAMES);
-        btnCheckIn.innerText = "Submit Check-In";
-        btnCheckIn.disabled = false;
-      })
-      .checkDeviceBinding(currentDeviceId);
-  };
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const res = await response.json();
+
+    if (res && res.isBound) {
+      isBound = true;
+      lockedEmpName = res.empName;
+
+      document.getElementById("nameSelectGroup").style.display = "none";
+
+      document.getElementById("boundNameDisplay").innerText =
+        "👤 Staff: " + res.empName + " (Device Verified)";
+
+      document.getElementById("boundNameDisplay").style.display = "block";
+
+      statusBadge.innerText = "Device Verified";
+      statusBadge.style.backgroundColor = "#e8f5e9";
+      statusBadge.style.color = "#2e7d32";
+    } else {
+      isBound = false;
+      lockedEmpName = "";
+
+      document.getElementById("nameSelectGroup").style.display = "block";
+      document.getElementById("boundNameDisplay").style.display = "none";
+
+      statusBadge.innerText = "First Visit: Select Name to Bind";
+      statusBadge.style.backgroundColor = "#fff3e0";
+      statusBadge.style.color = "#ef6c00";
+
+      await loadEmployeeList();
+    }
+  } catch (error) {
+    console.error("Device verification failed:", error);
+
+    isBound = false;
+    statusBadge.innerText = "Verification Failed";
+    statusBadge.style.backgroundColor = "#ffebee";
+    statusBadge.style.color = "#c62828";
+  } finally {
+    if (btnCheckIn) {
+      btnCheckIn.innerText = "Submit Check-In";
+      btnCheckIn.disabled = false;
+    }
   }
+}
+  const res = await response.json();
+
+    if (res && res.isBound) {
+      isBound = true;
+      lockedEmpName = res.empName;
+
+      document.getElementById("nameSelectGroup").style.display = "none";
+
+      document.getElementById("boundNameDisplay").innerText =
+        "👤 Staff: " + res.empName + " (Device Verified)";
+
+      document.getElementById("boundNameDisplay").style.display = "block";
+    } else {
+      isBound = false;
+      lockedEmpName = "";
+
+      document.getElementById("nameSelectGroup").style.display = "block";
+    }
+  } catch (err) {
+    console.error("Device verification failed:", err);
+    isBound = false;
+    lockedEmpName = "";
+  } finally {
+    if (btnCheckIn) {
+      btnCheckIn.innerText = "Submit Check-In";
+      btnCheckIn.disabled = false;
+    }
+  }
+}
 
   function submitCheckIn() {
     var empName = isBound ? lockedEmpName : document.getElementById("empSelect").value;
