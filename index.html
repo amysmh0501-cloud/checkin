@@ -254,9 +254,6 @@ fetch(`${API_URL}?action=ping`)
   try {
     const url = new URL(API_URL);
     url.searchParams.set("action", "checkDeviceBinding");
-
-    // 如果你的後端需要裝置識別碼，
-    // 請依原本的綁定機制加入必要參數。
     const response = await fetch(url.toString());
 
     if (!response.ok) {
@@ -288,7 +285,6 @@ fetch(`${API_URL}?action=ping`)
   } catch (error) {
     console.error("Device binding check failed:", error);
 
-    // 連線失敗時不要誤認為裝置已驗證。
     isBound = false;
     statusBadge.innerText = "Verification Failed";
   }
@@ -313,10 +309,9 @@ fetch(`${API_URL}?action=ping`)
       .getEmployeeList();
   }
 
-  window.onload = function() {
-    var statusBadge = document.getElementById("statusBadge");
-    var btnCheckIn = document.getElementById("btnCheckIn");
-
+window.onload = function() {
+  checkDeviceBinding();
+};
     google.script.run
       .withSuccessHandler(function(res) {
         if (res && res.isBound) {
