@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Check-In">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Location Check-In System</title>
   <style>
     * {
@@ -28,12 +31,7 @@
       max-width: 400px;
       text-align: center;
     }
-    h2 {
-      margin-top: 0;
-      color: #2c3e50;
-      font-size: 22px;
-      margin-bottom: 16px;
-    }
+    h2 { margin-top: 0; color: #2c3e50; font-size: 22px; margin-bottom: 16px; }
     .status-badge {
       display: inline-block;
       padding: 6px 14px;
@@ -44,17 +42,8 @@
       font-size: 13px;
       margin-bottom: 20px;
     }
-    .form-group {
-      text-align: left;
-      margin-bottom: 18px;
-    }
-    label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: #546e7a;
-      margin-bottom: 6px;
-    }
+    .form-group { text-align: left; margin-bottom: 18px; }
+    label { display: block; font-size: 14px; font-weight: 600; color: #546e7a; margin-bottom: 6px; }
     select, button {
       width: 100%;
       padding: 12px 14px;
@@ -64,10 +53,7 @@
       outline: none;
       transition: all 0.2s ease;
     }
-    select:focus {
-      border-color: #1e88e5;
-      box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
-    }
+    select:focus { border-color: #1e88e5; box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15); }
     .btn-submit {
       background-color: #1e88e5;
       color: #ffffff;
@@ -77,13 +63,8 @@
       cursor: pointer;
       margin-top: 10px;
     }
-    .btn-submit:hover {
-      background-color: #1565c0;
-    }
-    .btn-submit:disabled {
-      background-color: #b0bec5;
-      cursor: not-allowed;
-    }
+    .btn-submit:hover { background-color: #1565c0; }
+    .btn-submit:disabled { background-color: #b0bec5; cursor: not-allowed; }
     .locked-card {
       background-color: #e8f5e9;
       border: 1px solid #c8e6c9;
@@ -95,22 +76,25 @@
       font-size: 15px;
       text-align: center;
     }
-    .loading-spinner {
+    .install-tip {
       display: none;
-      margin-top: 12px;
-      color: #78909c;
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      color: #8d6e00;
+      padding: 12px;
+      border-radius: 8px;
       font-size: 13px;
+      line-height: 1.5;
+      text-align: left;
+      margin-bottom: 18px;
     }
+    .loading-spinner { display: none; margin-top: 12px; color: #78909c; font-size: 13px; }
 
     .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.45);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      padding: 20px;
+      display: flex; justify-content: center; align-items: center;
+      z-index: 1000; padding: 20px;
     }
     .modal-card {
       background: #ffffff;
@@ -122,27 +106,12 @@
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
       animation: modalPop 0.2s ease-out;
     }
-    @keyframes modalPop {
-      from { transform: scale(0.85); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    .modal-body {
-      font-size: 15px;
-      color: #2c3e50;
-      margin-bottom: 20px;
-      white-space: pre-line;
-      line-height: 1.5;
-    }
+    @keyframes modalPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-body { font-size: 15px; color: #2c3e50; margin-bottom: 20px; white-space: pre-line; line-height: 1.5; }
     .modal-btn {
-      background-color: #1e88e5;
-      color: #ffffff;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 15px;
-      cursor: pointer;
-      width: 100%;
+      background-color: #1e88e5; color: #ffffff; border: none;
+      padding: 10px 24px; border-radius: 8px; font-weight: bold; font-size: 15px;
+      cursor: pointer; width: 100%;
     }
   </style>
 </head>
@@ -150,13 +119,18 @@
 
 <div class="card">
   <h2>📍 Location Check-In</h2>
-  
+
   <div id="statusBadge" class="status-badge">Identifying device...</div>
 
-  <!-- 1. Displayed after successful device binding -->
+  <!-- iPhone 提示：請先加入主畫面再綁定 -->
+  <div id="installTip" class="install-tip">
+    <b>iPhone users:</b> Before your first check-in, tap the Share button
+    (<b>⬆︎</b>) → <b>Add to Home Screen</b>, then open the app from the new icon
+    to bind your phone.
+  </div>
+
   <div id="boundNameDisplay" class="locked-card" style="display: none;"></div>
 
-  <!-- 2. Displayed on first visit (Unbound state) -->
   <div id="nameSelectGroup" class="form-group" style="display: none;">
     <label for="empSelect">Select Your Name (Will bind to this device on first check-in):</label>
     <select id="empSelect">
@@ -164,21 +138,20 @@
     </select>
   </div>
 
-  <!-- Action: Clock-In / Clock-Out Selection -->
   <div class="form-group">
     <label for="checkTypeSelect">Action:</label>
     <select id="checkTypeSelect">
-      <option value="Clock-In">Clock-In (上班)</option>
-      <option value="Clock-Out">Clock-Out (下班)</option>
+      <option value="Clock-In">Clock-In</option>
+      <option value="Clock-Out">Clock-Out</option>
     </select>
   </div>
 
-  <!-- Check-in Location Selection -->
   <div class="form-group">
     <label for="locationSelect">Location:</label>
     <select id="locationSelect">
       <option value="Shop">Shop</option>
       <option value="Main Kitchen">Main Kitchen</option>
+      <option value="SA">SA</option>
     </select>
   </div>
 
@@ -187,7 +160,6 @@
   <div id="loadingText" class="loading-spinner">⏳ Acquiring GPS location & verifying, please wait...</div>
 </div>
 
-<!-- Custom URL-Free Alert Modal -->
 <div id="customModal" class="modal-overlay" style="display: none;">
   <div class="modal-card">
     <div id="modalText" class="modal-body"></div>
@@ -196,328 +168,192 @@
 </div>
 
 <script>
-"use strict";
-
-// ============================================
-// 1. API 設定
-// ============================================
-
-const API_URL = "YOUR_APPS_SCRIPT_EXEC_URL";
-
-const DEFAULT_NAMES = [
-  "Surlaia", "Cliff", "Helen", "Jessinta",
-  "Shantel", "Doreen", "Maria", "Amy", "Winston"
-];
-
-let onModalCloseCallback = null;
-let isBound = false;
-let lockedEmpName = "";
-let currentDeviceId = "";
-let statusBadge = null;
-let isSubmitting = false;
-
-
-// ============================================
-// 2. Modal 提示
-// ============================================
-
-function showAlert(msg, callback) {
-  document.getElementById("modalText").innerText = msg;
-  document.getElementById("customModal").style.display = "flex";
-  onModalCloseCallback = callback || null;
-}
-
-function closeCustomModal() {
-  document.getElementById("customModal").style.display = "none";
-
-  if (onModalCloseCallback) {
-    const callback = onModalCloseCallback;
-    onModalCloseCallback = null;
-    callback();
-  }
-}
-
-
-// ============================================
-// 3. 裝置 ID
-// 必須沿用原本 company_device_id
-// ============================================
-
-function getDeviceId() {
-  let id = localStorage.getItem("company_device_id");
-
-  if (!id) {
-    if (!crypto.randomUUID) {
-      throw new Error("This browser cannot generate a device ID.");
-    }
-
-    id = "DEV-" + crypto.randomUUID();
-    localStorage.setItem("company_device_id", id);
-  }
-
-  return id;
-}
-
-
-// ============================================
-// 4. 員工下拉選單
-// ============================================
-
-function renderDropdownOptions(names) {
-  const select = document.getElementById("empSelect");
-
-  if (!select) {
-    console.error("Missing element: empSelect");
-    return;
-  }
-
-  select.innerHTML = '<option value="">-- Select Your Name --</option>';
-
-  names.forEach(function(name) {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.innerText = name;
-    select.appendChild(opt);
-  });
-}
-
-async function loadEmployeeList() {
-  try {
-    const url = new URL(API_URL);
-    url.searchParams.set("action", "getEmployeeList");
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
-    }
-
-    const result = await response.json();
-
-    let names = [];
-
-    if (Array.isArray(result)) {
-      names = result;
-    } else if (result && Array.isArray(result.nameList)) {
-      names = result.nameList;
-    }
-
-    renderDropdownOptions(
-      names.length > 0 ? names : DEFAULT_NAMES
-    );
-
-  } catch (error) {
-    console.error("Load employee list failed:", error);
-    renderDropdownOptions(DEFAULT_NAMES);
-  }
-}
-
-
-// ============================================
-// 5. 檢查裝置綁定
-// ============================================
-
-async function verifyCurrentDevice(deviceId) {
-  const nameGroup = document.getElementById("nameSelectGroup");
-  const boundDisplay = document.getElementById("boundNameDisplay");
-
-  try {
-    const url = new URL(API_URL);
-    url.searchParams.set("action", "checkDeviceBinding");
-    url.searchParams.set("deviceId", deviceId);
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
-    }
-
-    const result = await response.json();
-
-    if (result && result.isBound) {
-      isBound = true;
-      lockedEmpName = result.empName;
-
-      nameGroup.style.display = "none";
-
-      boundDisplay.innerText =
-        "👤 Staff: " + result.empName + " (Device Verified)";
-      boundDisplay.style.display = "block";
-
-      statusBadge.innerText = "Device Verified";
-      statusBadge.style.backgroundColor = "#e8f5e9";
-      statusBadge.style.color = "#2e7d32";
-
-    } else {
-      isBound = false;
-      lockedEmpName = "";
-
-      nameGroup.style.display = "block";
-      boundDisplay.style.display = "none";
-
-      statusBadge.innerText = "First Visit: Select Name to Bind";
-      statusBadge.style.backgroundColor = "#fff3e0";
-      statusBadge.style.color = "#ef6c00";
-    }
-
-    return result;
-
-  } catch (error) {
-    console.error("Device verification failed:", error);
-
-    isBound = false;
-    lockedEmpName = "";
-
-    statusBadge.innerText = "Verification Failed";
-    statusBadge.style.backgroundColor = "#ffebee";
-    statusBadge.style.color = "#c62828";
-
-    // 驗證失敗時不要允許打卡
-    throw error;
-  }
-}
-
-
-// ============================================
-// 6. 打卡提交
-// 需要後端 doPost(e) 支援 processCheckIn
-// ============================================
-
-async function submitCheckIn() {
-  if (isSubmitting) return;
-
-  const btn = document.getElementById("btnCheckIn");
-  const loadingText = document.getElementById("loadingText");
-
-  const empSelect = document.getElementById("empSelect");
-  const checkTypeSelect = document.getElementById("checkTypeSelect");
-  const locationSelect = document.getElementById("locationSelect");
-
-  // 綁定裝置只能使用後端確認的員工
-  const empName = isBound
-    ? lockedEmpName
-    : empSelect.value;
-
-  if (!empName) {
-    showAlert("Please select your name first!");
-    return;
-  }
-
-  const checkType = checkTypeSelect.value;
-  const location = locationSelect.value;
-
-  isSubmitting = true;
-  btn.disabled = true;
-  btn.innerText = "Locating & Verifying...";
-
-  if (loadingText) loadingText.style.display = "block";
-
-  try {
-    // 如果已有裝置綁定，先重新向後端驗證
-    const binding = await verifyCurrentDevice(currentDeviceId);
-
-    if (binding && binding.isBound &&
-        binding.empName !== empName) {
-      throw new Error("Device employee mismatch.");
-    }
-
-    await new Promise(function(resolve, reject) {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported."));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        resolve,
-        reject,
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-    }).then(async function(position) {
-      const payload = new URLSearchParams({
-        action: "processCheckIn",
-        empName: empName,
-        location: location,
-        lat: String(position.coords.latitude),
-        lng: String(position.coords.longitude),
-        deviceId: currentDeviceId,
-        checkType: checkType
-      });
-
-      // 注意：Apps Script 後端必須實作對應的 doPost 路由
-      const response = await fetch(API_URL, {
-        method: "POST",
-        body: payload
-      });
-
-      if (!response.ok) {
-        throw new Error("HTTP " + response.status);
-      }
-
-      const result = await response.json();
-
-      if (!result || result.success !== true) {
-        throw new Error(
-          result && result.message
-            ? result.message
-            : "The server did not confirm check-in."
-        );
-      }
-
-      showAlert(result.message || "Check-in successful!", function() {
-        if (result.boundNewDevice) {
-          window.location.reload();
-        }
-      });
+  /* ★★★ 部署 Apps Script 後，把「網頁應用程式網址」貼在這裡 ★★★ */
+  var API_URL = "https://script.google.com/macros/s/PASTE_YOUR_DEPLOYMENT_ID_HERE/exec";
+
+  var onModalCloseCallback = null;
+  var isBound = false;
+  var lockedEmpName = "";
+
+  /* ---------- 呼叫後端 API ---------- */
+  function api(action, payload) {
+    var body = Object.assign({ action: action }, payload || {});
+    return fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },  // 避免 CORS preflight
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
     });
+  }
 
-  } catch (error) {
-    console.error("Check-in failed:", error);
+  /* ---------- 彈窗 ---------- */
+  function showAlert(msg, callback) {
+    document.getElementById("modalText").innerText = msg;
+    document.getElementById("customModal").style.display = "flex";
+    onModalCloseCallback = callback || null;
+  }
+  function closeCustomModal() {
+    document.getElementById("customModal").style.display = "none";
+    if (onModalCloseCallback) { var cb = onModalCloseCallback; onModalCloseCallback = null; cb(); }
+  }
 
-    showAlert(
-      error.code === 1
-        ? "Location permission denied. Please enable location access."
-        : error.code === 3
-        ? "Location request timed out. Please try again."
-        : "Unable to confirm check-in. Please check your connection and try again."
-    );
+  /* ---------- 裝置 ID：localStorage + cookie 雙備份 ---------- */
+  function readCookie(k) {
+    var m = document.cookie.match(new RegExp("(?:^|; )" + k + "=([^;]*)"));
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function newUuid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0;
+      return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+  function getDeviceId() {
+    var id = "";
+    try { id = localStorage.getItem("company_device_id") || ""; } catch (e) {}
+    if (!id) id = readCookie("company_device_id");
+    if (!id) id = "DEV-" + newUuid();
+    try { localStorage.setItem("company_device_id", id); } catch (e) {}
+    document.cookie = "company_device_id=" + encodeURIComponent(id) +
+                      "; max-age=315360000; path=/; SameSite=Lax; Secure";
+    return id;
+  }
+  var currentDeviceId = getDeviceId();
 
-  } finally {
-    isSubmitting = false;
+  /* ---------- iPhone 在 Safari 分頁中開啟時，顯示加入主畫面提示 ---------- */
+  (function () {
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var standalone = window.navigator.standalone === true ||
+                     window.matchMedia("(display-mode: standalone)").matches;
+    if (isIOS && !standalone) document.getElementById("installTip").style.display = "block";
+  })();
+
+  /* ---------- 名單 ---------- */
+  function renderDropdownOptions(names) {
+    var select = document.getElementById("empSelect");
+    select.innerHTML = '<option value="">-- Select Your Name --</option>';
+    names.forEach(function (name) {
+      var opt = document.createElement("option");
+      opt.value = name;
+      opt.innerText = name;
+      select.appendChild(opt);
+    });
+  }
+
+  function loadEmployeeList() {
+    api("getEmployeeList")
+      .then(function (res) {
+        if (res && res.success && res.nameList.length > 0) {
+          renderDropdownOptions(res.nameList);
+        } else if (res && res.success) {
+          renderDropdownOptions([]);
+          showAlert("No unbound staff names available.\nIf you changed phones, please ask the manager to reset your device.");
+        } else {
+          showAlert("Unable to load staff list. Please reload the page.");
+        }
+      })
+      .catch(function () {
+        showAlert("Network error while loading staff list. Please reload the page.");
+      });
+  }
+
+  /* ---------- 頁面載入 ---------- */
+  window.onload = function () {
+    var statusBadge = document.getElementById("statusBadge");
+    var btnCheckIn = document.getElementById("btnCheckIn");
+
+    api("checkDeviceBinding", { deviceId: currentDeviceId })
+      .then(function (res) {
+        if (res && res.isBound) {
+          isBound = true;
+          lockedEmpName = res.empName;
+          document.getElementById("installTip").style.display = "none";
+          document.getElementById("nameSelectGroup").style.display = "none";
+          document.getElementById("boundNameDisplay").innerText = "👤 Staff: " + res.empName + " (Device Verified)";
+          document.getElementById("boundNameDisplay").style.display = "block";
+          statusBadge.innerText = "Device Verified";
+          statusBadge.style.backgroundColor = "#e8f5e9";
+          statusBadge.style.color = "#2e7d32";
+        } else {
+          isBound = false;
+          document.getElementById("nameSelectGroup").style.display = "block";
+          document.getElementById("boundNameDisplay").style.display = "none";
+          statusBadge.innerText = "First Visit: Select Name to Bind";
+          statusBadge.style.backgroundColor = "#fff3e0";
+          statusBadge.style.color = "#ef6c00";
+          loadEmployeeList();
+        }
+        btnCheckIn.innerText = "Submit Check-In";
+        btnCheckIn.disabled = false;
+      })
+      .catch(function () {
+        statusBadge.innerText = "Connection Error";
+        statusBadge.style.backgroundColor = "#ffebee";
+        statusBadge.style.color = "#c62828";
+        btnCheckIn.innerText = "Reload Page";
+        btnCheckIn.disabled = false;
+        btnCheckIn.onclick = function () { window.location.reload(); };
+        showAlert("Unable to connect to the server. Please check your internet and reload.");
+      });
+  };
+
+  /* ---------- 打卡 ---------- */
+  function resetButton() {
+    var btn = document.getElementById("btnCheckIn");
     btn.disabled = false;
     btn.innerText = "Submit Check-In";
-
-    if (loadingText) loadingText.style.display = "none";
-  }
-}
-
-
-// ============================================
-// 7. 頁面初始化
-// ============================================
-
-window.addEventListener("load", async function() {
-  statusBadge = document.getElementById("statusBadge");
-
-  try {
-    currentDeviceId = getDeviceId();
-  } catch (error) {
-    console.error("Device ID initialization failed:", error);
-    showAlert("Unable to initialize this device. Please use a supported browser.");
-    return;
+    document.getElementById("loadingText").style.display = "none";
   }
 
-  // 載入員工名單；同時驗證裝置
-  await Promise.all([
-    loadEmployeeList(),
-    verifyCurrentDevice(currentDeviceId).catch(function() {
-      // 驗證失敗已由函式顯示狀態
-    })
-  ]);
-});
+  function submitCheckIn() {
+    var empName = isBound ? lockedEmpName : document.getElementById("empSelect").value;
+    if (!empName) { showAlert("Please select your name first!"); return; }
+    if (!navigator.geolocation) { showAlert("This browser does not support GPS location."); return; }
+
+    var checkType = document.getElementById("checkTypeSelect").value;
+    var location = document.getElementById("locationSelect").value;
+    var btn = document.getElementById("btnCheckIn");
+
+    btn.disabled = true;
+    btn.innerText = "Locating & Verifying...";
+    document.getElementById("loadingText").style.display = "block";
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        api("processCheckIn", {
+          empName: empName,
+          location: location,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          deviceId: currentDeviceId,
+          checkType: checkType
+        })
+        .then(function (res) {
+          resetButton();
+          showAlert(res.message, function () {
+            if (res.success && !isBound) window.location.reload();
+          });
+        })
+        .catch(function (err) {
+          resetButton();
+          showAlert("Check-in failed to submit. Please check your internet and try again.");
+        });
+      },
+      function (err) {
+        resetButton();
+        var msg = "Unable to acquire GPS location. Please make sure location services are enabled on your device.";
+        if (err && err.code === 1) msg = "Location permission was denied.\nPlease allow location access for this app in your phone settings.";
+        else if (err && err.code === 3) msg = "GPS timed out. Please move to an open area and try again.";
+        showAlert(msg);
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    );
+  }
 </script>
 
 </body>
